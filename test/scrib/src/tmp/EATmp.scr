@@ -6,6 +6,7 @@ module tmp.EATmp;
 
 data <scala> "String" from "" as String;
 data <scala> "Int" from "" as Int;
+data <scala> "Boolean" from "" as Boolean;
 
 
 // TODO
@@ -21,7 +22,7 @@ data <scala> "Int" from "" as Int;
 // - try session runtime using EDP and coalescing (cf. Init)
 
 
-/* // gen01
+//* // gen01
 global protocol Proto01(role A, role B)
 {
 	L1(String) from A to B;
@@ -100,7 +101,7 @@ global protocol Proto1(role A, role B) {
 global protocol Proto09(role A, role B)
 {
 	L1() from A to B;
-	L2(Int) from B to A;
+	L2(Int, Boolean) from B to A;
 }
 //*/
 
@@ -122,20 +123,20 @@ global protocol Proto09(role A, role B)
 
 
 
-/* // Shop -- !!! -fair
-global protocol Proto1(role C, role S, role P)
+//* // Shop -- !!! -fair
+global protocol ShopProto1(role C, role S, role P)
 {
     ReqItems(String) from C to S;
     Items(String) from S to C;
-    do Proto1Aux(C, S, P);
+    do ShopProto1Aux(C, S, P);
 }
 
-aux global protocol Proto1Aux(role C, role S, role P)
+aux global protocol ShopProto1Aux(role C, role S, role P)
 {
     choice at C {
         GetItemInfo(String) from C to S;
         ItemInfo(String) from S to C;
-        do Proto1Aux(C, S, P);
+        do ShopProto1Aux(C, S, P);
     } or {
         Checkout(String) from C to S;
         choice at S {
@@ -144,26 +145,26 @@ aux global protocol Proto1Aux(role C, role S, role P)
             choice at P {
                 OK(String) from P to S;
                 OKc(String) from S to C;  // delivery date
-                do Proto1Aux(C, S, P);
+                do ShopProto1Aux(C, S, P);
             } or {
                 Declined(String) from P to S;
                 Declinedc(String) from S to C;  // insufficient funds
-                do Proto1Aux(C, S, P);
+                do ShopProto1Aux(C, S, P);
             }
         } or {
             OutOfStock(String) from S to C;
-            do Proto1Aux(C, S, P);
+            do ShopProto1Aux(C, S, P);
         }
     }
 }
 
-global protocol Proto2(role SS, role SF) {
+global protocol ShopProto2(role SS, role SF) {
     choice at SS {
         AddItem(String) from SS to SF;
-        do Proto2(SS, SF);
+        do ShopProto2(SS, SF);
     } or {
         RemoveItem(String) from SS to SF;
-        do Proto2(SS, SF);
+        do ShopProto2(SS, SF);
     }
 }
 //*/

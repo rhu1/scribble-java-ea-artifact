@@ -275,24 +275,37 @@ public class EAApiGen {
         List<GParam> params = List.of(
                 new GParam(List.of(), "D", "d"),
                 new GParam(List.of(), "(D, " + state + ") => " + DONE_TYPE, "f"));
-        int[] c = { 1 };
+        int[] c = { 0 };
         Function<List<DataName>, String> g = (x) ->
-                x.stream().map(y -> ", pay(" + c[0]++ + ").asInstanceOf[" + y + "]")
+                //x.stream().map(y -> ", pay(" + c[0]++ + ").asInstanceOf[" + y + "]")
+                x.stream().map(y -> {
+                     if (y.toString().equals("String")) {
+                         return ", actor.deserializeString(split(" + c[0]++ + "))";
+                     } else if (y.toString().equals("Int")) {
+                         return ", actor.deserializeInt(split(" + c[0]++ +"))";
+                     } else if (y.toString().equals("Boolean")) {
+                         return ", actor.deserializeBoolean(split(" + c[0]++ +"))";
+                     } else {
+                         throw new RuntimeException("TODO: " + y);
+                     }
+                 })
                  .collect(Collectors.joining());
-        Function<EAction, String> f = (x) ->
-                "\tif (op == \"" + x.mid + "\") {"
-                        + "\n\t\tval s = " + getSuccTypeName(names, s, x) + "(" + SID_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")"
-                        + "\n\t\tsucc = Some(s)"
-                        //+ "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", pay.asInstanceOf[" + getPayloadType(x) + "], s)"
-                        + "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + g.apply(getPayloadTypes(x)) + ", s)"
-                        + "\n\t} else ";
+        Function<EAction, String> f = (x) -> {
+            c[0] = 0;
+            return "\tif (op == \"" + x.mid + "\") {"
+                    + "\n\t\tval s = " + getSuccTypeName(names, s, x) + "(" + SID_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")"
+                    + "\n\t\tsucc = Some(s)"
+                    + "\n\t\tval split = pay.split(\"::::\")"
+                    //+ "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", pay.asInstanceOf[" + getPayloadType(x) + "], s)"
+                    + "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + g.apply(getPayloadTypes(x)) + ", s)"
+                    + "\n\t} else ";
+        };
         List<EAction> as = s.getDetActions();
         Role peer = as.get(0).peer;
-        c[0] = 1;
+        //c[0] = 1;
         String body = CHECK_NOT_USED_METHOD + "()"
-                //+ "\nval g = (op: String, pay: Object) => {"  // !!! Object -- cf. generic lambda not directly supported?
-                //+ "\nval g = (op: String, " + IntStream.of(1, as.size()+1).mapToObj(x -> "pay" + x + ": Object").collect(Collectors.joining(", ")) + ") => {"  // !!! Object -- cf. generic lambda not directly supported?
-                + "\nval g = (op: String, pay: List[Object]) => {"  // !!! Object -- cf. generic lambda not directly supported?
+                + "\nval g = (op: String, pay: String) => {"  // !!! Object -- cf. generic lambda not directly supported?
+                //+ "\nval g = (op: String, pay: List[Object]) => {"  // !!! Object -- cf. generic lambda not directly supported?
                 + "\n\tvar succ: Option[Session.ActorState[Actor]] = None"
                 + "\n\tval msg: " + state + " ="
                 + "\n" + as.stream().map(f).collect(Collectors.joining())
@@ -344,8 +357,21 @@ public class EAApiGen {
                 pays.stream().map(x -> new GParam(List.of(), x.toString(), SEND_PAY_PARAM_NAME + c[0]++)).toList();
         c[0] = 1;
         String body = CHECK_NOT_USED_METHOD + "()"
+                + "\nval pay = " +
+                    (pays.isEmpty() ? "\"\"" :
+                    pays.stream().map(x -> {
+                    if (x.toString().equals("String")) {
+                        return "actor.serializeString(" + SEND_PAY_PARAM_NAME + c[0]++ + ")";
+                    } else if (x.toString().equals("Int")) {
+                        return "actor.serializeInt(" + SEND_PAY_PARAM_NAME + c[0]++ + ")";
+                    } else if (x.toString().equals("Boolean")) {
+                        return "actor.serializeBoolean(" + SEND_PAY_PARAM_NAME + c[0]++ + ")";
+                    } else {
+                        throw new RuntimeException("TODO: " + x);
+                    }
+                 }).collect(Collectors.joining(" + \"::::\" + ")))
                 //+ "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\"" + pays.stream().map(x -> ", " + SEND_PAY_PARAM_NAME + c[0]++).collect(Collectors.joining()) + ")"
-                + "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\", List(" + pays.stream().map(x -> SEND_PAY_PARAM_NAME + c[0]++).collect(Collectors.joining(", ")) + "))"
+                + "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\", pay)"
                 + "\n" + ret + "(" + SID_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")";
         return new GMethod(List.of(), name, List.of(), params, ret, body);
     }
