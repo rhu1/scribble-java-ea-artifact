@@ -27,7 +27,7 @@ data <scala> "Int" from "TODO" as Int;
 // - try session runtime using EDP and coalescing (cf. Init)
 
 
-/* // gen01
+//* // gen01
 global protocol Proto1(role A, role B)
 {
 	L1(String) from A to B;
@@ -193,7 +193,7 @@ global protocol Proto1(role R, role D, role W) {
 //*/
 
 
-//* // chat
+/* // chat
 global protocol Proto1(role C, role S) {  // ChatServer(ClientThread, RoomRegistry)
     choice at C {
         LookupRoom(String) from C to S;  // RoomName
