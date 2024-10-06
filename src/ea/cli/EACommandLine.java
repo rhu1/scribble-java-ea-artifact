@@ -17,6 +17,8 @@ import org.scribble.util.AntlrSourceException;
 import org.scribble.util.Pair;
 import org.scribble.util.ScribException;
 
+import java.util.Map;
+
 public class EACommandLine extends CommandLine {
 
     public EACommandLine(String... args) {
@@ -53,12 +55,19 @@ public class EACommandLine extends CommandLine {
                 CoreContext corec = core.getContext();
                 GProtocol inlined = corec.getInlined(fullname);
                 EAApiGen gen = new EAApiGen();
-                System.out.println("\n" + gen.generateProtoAPI(inlined));
+
+                Map<String, String> proto = gen.generateProtoAPI(inlined);
+                //System.out.println("\n" + proto);
+                outputClasses(proto);
+
                 for (Role r : inlined.roles) {
                     EGraph efsm = job.config.args.get(CoreArgs.MIN_EFSM)
                                   ? corec.getMinimisedEGraph(fullname, r)
                                   : corec.getEGraph(fullname, r);
-                    foo(gen, inlined, r, efsm);
+
+                    Map<String, String> roles = gen.generateRoleAPI(inlined, r, efsm);
+                    //System.out.println("\n" + roles);
+                    outputClasses(roles);
                 }
                 break;
             }
@@ -68,6 +77,5 @@ public class EACommandLine extends CommandLine {
     }
 
     protected void foo(EAApiGen gen, GProtocol inlined, Role r, EGraph efsm) {
-        System.out.println("\n" + gen.generateRoleAPI(inlined, r, efsm));
     }
 }

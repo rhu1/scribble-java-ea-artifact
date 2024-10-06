@@ -45,21 +45,36 @@ public class EAApiGen {
 
     /* ... */
 
-    public String generateProtoAPI(GProtocol inlined) {
+    public Map<String, String> generateProtoAPI(GProtocol inlined) {
         System.out.println("\n[EAAPIGen] Generating Proto API for: " + inlined.fullname);
 
         GProtoName proto = inlined.fullname.getSimpleName();
         List<GIndentable> membs = new LinkedList<>();
 
-        // !!! FIXME
-        membs.add(new GPackage("tmp.scratch.scratch07." + getProtoPackageName(proto)));
-        membs.add(new GImport("tmp.scratch.scratch07.eventactor", List.of("AP", "Session")));
+        //membs.add(new GPackage("tmp.scratch.scratch07." + getProtoPackageName(proto)));
+        membs.add(new GPackage(fullnameToPackage(inlined.fullname)));
+        membs.add(new GImport("ea.runtime", List.of("AP", "Session")));
 
         List<Role> all = //inlined.roles.stream().sorted((o1, o2) -> Comparator.<String>naturalOrder().compare(o1.toString(), o2.toString())).toList();
                 inlined.roles;
         membs.add(generateAPCompanion(proto, all));
         membs.add(generateAPClass(proto));
-        return membs.stream().map(GIndentable::toString).collect(Collectors.joining("\n\n"));
+
+        String file = fullnameToProtoFilename(inlined.fullname);
+        return Map.of(file, membs.stream().map(GIndentable::toString)
+                                 .collect(Collectors.joining("\n\n")));
+    }
+
+    protected String fullnameToPackage(GProtoName p) {
+        String[] es = p.getElements();
+        return Arrays.stream(es).limit(es.length - 1)
+                     .collect(Collectors.joining("."))
+                + "." + getProtoPackageName(p);  // refactor -- combine
+    }
+
+    protected String fullnameToProtoFilename(GProtoName p) {
+         return fullnameToPackage(p).replaceAll("\\.", "/")
+                + "/" + getProtoPackageName(p) + ".scala";
     }
 
     protected String getAPClassName(GProtoName proto) {
@@ -84,7 +99,7 @@ public class EAApiGen {
 
     /* ... */
 
-    public String generateRoleAPI(GProtocol inlined, Role r, EGraph efsm) {
+    public Map<String, String> generateRoleAPI(GProtocol inlined, Role r, EGraph efsm) {
 
         System.out.println("\n[EAAPIGen] Generating Role API for: " + inlined.fullname + "@" + r);
 
@@ -95,9 +110,9 @@ public class EAApiGen {
         GProtoName proto = inlined.fullname.getSimpleName();
         List<GIndentable> membs = new LinkedList<>();
 
-        // !!! FIXME
-        membs.add(new GPackage("tmp.scratch.scratch07." + getProtoPackageName(proto)));
-        membs.add(new GImport("tmp.scratch.scratch07.eventactor", List.of("Actor", "Done", "Session")));
+        //membs.add(new GPackage("tmp.scratch.scratch07." + getProtoPackageName(proto)));
+        membs.add(new GPackage(fullnameToPackage(inlined.fullname)));
+        membs.add(new GImport("ea.runtime", List.of("Actor", "Done", "Session")));
 
         List<Role> peers = //inlined.roles.stream().filter(x -> !x.equals(r)).sorted((o1, o2) -> Comparator.<String>naturalOrder().compare(o1.toString(), o2.toString())).toList();
                 inlined.roles.stream().filter(x -> !x.equals(r)).toList();
@@ -116,7 +131,14 @@ public class EAApiGen {
         }
 
         //return generateTop(proto, r) + "\n" + res;
-        return membs.stream().map(GIndentable::toString).collect(Collectors.joining("\n\n"));
+        String file = fullnameToRoleFilename(inlined.fullname, r);
+        return Map.of(file, membs.stream().map(GIndentable::toString)
+                                 .collect(Collectors.joining("\n\n")));
+    }
+
+    protected String fullnameToRoleFilename(GProtoName p, Role r) {
+        return fullnameToPackage(p).replaceAll("\\.", "/")
+                + "/" + getProtoPackageName(p) + "_" + r + ".scala";
     }
 
     protected Pair<List<EState>, Map<Integer, String>> getStatesAndNames(Role r, EGraph efsm) {
@@ -147,12 +169,14 @@ public class EAApiGen {
         //List<String> supers = List.of("Actor(" + PID_PARAM_NAME + ")");
         List<String> supers = List.of("Actor");
         List<GMethod> methods = List.of(generateRegister(proto, r, peers, initName));
+
         //return new GClass(List.of(), name, params, List.of(), methods, supers);
-        return new GTrait(List.of(), name, supers, methods);
+        return new GTrait(List.of(), name, supers, methods);  // !!! multi roles, e.g., trait SS extends ActorS with ActorSS
     }
 
     protected String getProtoPackageName(GProtoName proto) {
-        return proto.getSimpleName().toString().toLowerCase(Locale.ROOT);
+        //return proto.getSimpleName().toString().toLowerCase(Locale.ROOT);
+        return proto.getSimpleName().toString();
     }
 
     protected String getActorClassName(Role r) {
@@ -254,11 +278,11 @@ public class EAApiGen {
         Role peer = as.get(0).peer;
         String body = CHECK_NOT_USED_METHOD + "()"
                 + "\nval g = (op: String, pay: Object) => {"  // !!! Object -- cf. generic lambda not directly supported?
-                + "\nvar succ: Option[Session.ActorState[Actor]] = None"
+                + "\n\tvar succ: Option[Session.ActorState[Actor]] = None"
                 + "\n\tval msg: " + state + " ="
                 + "\n" + as.stream().map(f).collect(Collectors.joining())
                 + "{"
-                + "\n\t\tthrow new RuntimeException(s\"[ERROR] Unexpected op: ${op}(${pay})\");"
+                + "\n\t\tthrow new RuntimeException(s\"[ERROR] Unexpected op: ${op}(${pay})\")"
                 + "\n\t}"
                 + "\n\tval done = f.apply(d, msg)"
                 + "\n\tsucc.get.checkUsed()"
