@@ -13,6 +13,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class EAApiGen {
@@ -238,24 +239,30 @@ public class EAApiGen {
         GTrait state = new GTrait(List.of(SEALED_KW), name, List.of(ISTATE_TYPE), List.of());
 
         List<String> mods = susMods;
-        List<GParam> params = List.of(
-                new GParam(List.of(), SID_TYPE, SID_PARAM_NAME));
+        List<GParam> params = List.of(new GParam(List.of(), SID_TYPE, SID_PARAM_NAME));
         //new GParam(List.of(), "String", SEND_PAY_PARAM_NAME));
         //new GParam(List.of(), getSuccTypeName(r, s, x), "s"));
         List<GClass> cases = s.getDetActions().stream()
                               .map(x -> new GClass(mods, getInputCaseType(r, (Op) x.mid),
-                                      //params,
-                                      Stream.concat(
-                                              params.stream(),
-                                              Stream.of(
-                                                      new GParam(List.of(), getPayloadType(x).toString(), SEND_PAY_PARAM_NAME),
-                                                      new GParam(List.of(), getSuccTypeName(names, s, x), "s"))
-                                      ).toList(),
+                                      makeCaseParams(params, names, s, x),
                                       List.of(), List.of(), List.of(name)))
                               .toList();
         //new GClass(susMods, susName, susParams, susMethods, susSupers);
 
         return Stream.concat(Stream.of(sus, state), cases.stream()).toList();
+    }
+
+    protected List<GParam> makeCaseParams(
+            List<GParam> params, Map<Integer, String> names, EState s, EAction x) {
+        int[] c = { 1 };
+        return Stream.concat(
+                params.stream(),
+                Stream.concat(
+                    //new GParam(List.of(), getPayloadType(x).toString(), SEND_PAY_PARAM_NAME),
+                    getPayloadTypes(x).stream().map(y ->
+                            new GParam(List.of(), y.toString(), SEND_PAY_PARAM_NAME + c[0]++)),
+                    Stream.of(new GParam(List.of(), getSuccTypeName(names, s, x), "s")))
+        ).toList();
     }
 
     protected String getInputCaseType(Role r, Op op) {
@@ -268,16 +275,24 @@ public class EAApiGen {
         List<GParam> params = List.of(
                 new GParam(List.of(), "D", "d"),
                 new GParam(List.of(), "(D, " + state + ") => " + DONE_TYPE, "f"));
+        int[] c = { 1 };
+        Function<List<DataName>, String> g = (x) ->
+                x.stream().map(y -> ", pay(" + c[0]++ + ").asInstanceOf[" + y + "]")
+                 .collect(Collectors.joining());
         Function<EAction, String> f = (x) ->
                 "\tif (op == \"" + x.mid + "\") {"
                         + "\n\t\tval s = " + getSuccTypeName(names, s, x) + "(" + SID_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")"
                         + "\n\t\tsucc = Some(s)"
-                        + "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", pay.asInstanceOf[" + getPayloadType(x) + "], s)"
+                        //+ "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", pay.asInstanceOf[" + getPayloadType(x) + "], s)"
+                        + "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + g.apply(getPayloadTypes(x)) + ", s)"
                         + "\n\t} else ";
         List<EAction> as = s.getDetActions();
         Role peer = as.get(0).peer;
+        c[0] = 1;
         String body = CHECK_NOT_USED_METHOD + "()"
-                + "\nval g = (op: String, pay: Object) => {"  // !!! Object -- cf. generic lambda not directly supported?
+                //+ "\nval g = (op: String, pay: Object) => {"  // !!! Object -- cf. generic lambda not directly supported?
+                //+ "\nval g = (op: String, " + IntStream.of(1, as.size()+1).mapToObj(x -> "pay" + x + ": Object").collect(Collectors.joining(", ")) + ") => {"  // !!! Object -- cf. generic lambda not directly supported?
+                + "\nval g = (op: String, pay: List[Object]) => {"  // !!! Object -- cf. generic lambda not directly supported?
                 + "\n\tvar succ: Option[Session.ActorState[Actor]] = None"
                 + "\n\tval msg: " + state + " ="
                 + "\n" + as.stream().map(f).collect(Collectors.joining())
@@ -306,7 +321,7 @@ public class EAApiGen {
         List<GMethod> methods = Stream.concat(
                 s.getDetActions().stream()
                  .map(x -> generateSend(r, x.peer, (Op) x.mid,
-                         getPayloadType(x), getSuccTypeName(names, s, x))),
+                         getPayloadTypes(x), getSuccTypeName(names, s, x))),
                 Stream.of() //generateWeaken(name))
         ).toList();
 
@@ -322,11 +337,15 @@ public class EAApiGen {
         return new GMethod(List.of(), name, List.of(), List.of(), ret, body);
     }
 
-    protected GMethod generateSend(Role src, Role dst, Op op, DataName pay, String ret) {
+    protected GMethod generateSend(Role src, Role dst, Op op, List<DataName> pays, String ret) {
         String name = "send" + op;
-        List<GParam> params = List.of(new GParam(List.of(), pay.toString(), SEND_PAY_PARAM_NAME));
+        int[] c = { 1 };
+        List<GParam> params = //List.of(new GParam(List.of(), pay.toString(), SEND_PAY_PARAM_NAME));
+                pays.stream().map(x -> new GParam(List.of(), x.toString(), SEND_PAY_PARAM_NAME + c[0]++)).toList();
+        c[0] = 1;
         String body = CHECK_NOT_USED_METHOD + "()"
-                + "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\", " + SEND_PAY_PARAM_NAME + ")"
+                //+ "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\"" + pays.stream().map(x -> ", " + SEND_PAY_PARAM_NAME + c[0]++).collect(Collectors.joining()) + ")"
+                + "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\", List(" + pays.stream().map(x -> SEND_PAY_PARAM_NAME + c[0]++).collect(Collectors.joining(", ")) + "))"
                 + "\n" + ret + "(" + SID_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")";
         return new GMethod(List.of(), name, List.of(), params, ret, body);
     }
@@ -356,16 +375,20 @@ public class EAApiGen {
 
     /* ... */
 
-    protected DataName getPayloadType(EAction a) {
+    protected List<DataName> getPayloadTypes(EAction a) {
         List<PayElemType<? extends PayElemKind>> elems = a.payload.elems;
-        if (elems.size() != 1) {
+        /*if (elems.size() != 1) {
             throw new RuntimeException("TODO: " + elems);
         }
         PayElemType<? extends PayElemKind> fst = elems.get(0);
         if (!fst.isDataName()) {
             throw new RuntimeException("TODO: " + fst);
         }
-        return (DataName) fst;
+        return (DataName) fst;*/
+        if (elems.stream().anyMatch(x -> !x.isDataName())) {
+            throw new RuntimeException("TODO: " + elems);
+        }
+        return elems.stream().map(x -> (DataName) x).toList();
     }
 
     protected String getSuccTypeName(Map<Integer, String> names, EState s, EAction a) {

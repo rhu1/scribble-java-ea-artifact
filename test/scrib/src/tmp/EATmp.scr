@@ -1,34 +1,28 @@
-//Raymond@HZHL3 ~/code/scribble-java/scribble-java
-//$ bin/scribblec.sh -ip scribble-test/src/test/scrib/ -d scribble-test/src/test/scrib/tmp/ scribble-test/src/test/scrib/tmp/Test.scr
-//$ bin/scribblec.sh -ip scribble-test/src/test/scrib/ -d scribble-test/src/test/scrib/tmp/ scribble-test/src/test/scrib/tmp/Test.scr -api Proto1 B
-
-// OLD:
-//$ java -cp modules/cli/target/classes/';'modules/core/target/classes';'modules/trace/target/classes';'modules/parser/target/classes';c:\Users\Raymond\.m2\repository\org\antlr\antlr-runtime\3.2\antlr-runtime-3.2.jar;'modules/validation/target/classes/';'modules/projection/target/classes/';C:\Users\Raymond\.m2\repository\org\codehaus\jackson\jackson-mapper-asl\1.9.9\jackson-mapper-asl-1.9.9.jar;C:\Users\Raymond\.m2\repository\org\codehaus\jackson\jackson-core-asl\1.9.9\jackson-core-asl-1.9.9.jar' org.scribble.cli.CommandLine -path modules/core/src/test/scrib/ modules/core/src/test/scrib/Test.scr
-//$ java -cp modules/cli/target/classes/';'modules/core/target/classes';'modules/trace/target/classes';'modules/parser/target/classes';c:\Users\Raymond\.m2\repository\org\antlr\antlr-runtime\3.2\antlr-runtime-3.2.jar;'modules/validation/target/classes/';'modules/projection/target/classes/';C:\Users\Raymond\.m2\repository\org\codehaus\jackson\jackson-mapper-asl\1.9.9\jackson-mapper-asl-1.9.9.jar;C:\Users\Raymond\.m2\repository\org\codehaus\jackson\jackson-core-asl\1.9.9\jackson-core-asl-1.9.9.jar' org.scribble2.cli.CommandLine -path modules/validation/src/test/scrib/src modules/validation/src/test/scrib/src/Test.scr
-
-
-//http://sandbox.kidstrythisathome.com/erdos/
-
+//-- rhu1/scribble-java-ea-artifact (main) »
+// ./scribblec-ea.sh test/scrib/src/tmp/EATmp.scr Proto01 -d test/scrib/out
 
 module tmp.EATmp;
 
 
-//data <java> "..." from "..." as T;
-data <scala> "String" from "TODO" as String;
-data <scala> "Int" from "TODO" as Int;
+data <scala> "String" from "" as String;
+data <scala> "Int" from "" as Int;
 
 
 // TODO
 // - pay types -> (de)serialization in Actor.sendMessage and handle SEND
+// - failure handling
+// - spaces not tabs
+//
 // - package from module
-// - immutable data objects?
+//
+// - immutable data objects? -- API needs to thread through
 // - path dependent Done
 // - handler coalescing
 // - try session runtime using EDP and coalescing (cf. Init)
 
 
-//* // gen01
-global protocol Proto1(role A, role B)
+/* // gen01
+global protocol Proto01(role A, role B)
 {
 	L1(String) from A to B;
 }
@@ -100,6 +94,28 @@ global protocol Proto1(role A, role B) {
     L2(String) from B to A;
 }
 //*/
+
+
+//*/ 09
+global protocol Proto09(role A, role B)
+{
+	L1() from A to B;
+	L2(Int) from B to A;
+}
+//*/
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
