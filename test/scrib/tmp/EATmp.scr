@@ -1,0 +1,262 @@
+//Raymond@HZHL3 ~/code/scribble-java/scribble-java
+//$ bin/scribblec.sh -ip scribble-test/src/test/scrib/ -d scribble-test/src/test/scrib/tmp/ scribble-test/src/test/scrib/tmp/Test.scr
+//$ bin/scribblec.sh -ip scribble-test/src/test/scrib/ -d scribble-test/src/test/scrib/tmp/ scribble-test/src/test/scrib/tmp/Test.scr -api Proto1 B
+
+// OLD:
+//$ java -cp modules/cli/target/classes/';'modules/core/target/classes';'modules/trace/target/classes';'modules/parser/target/classes';c:\Users\Raymond\.m2\repository\org\antlr\antlr-runtime\3.2\antlr-runtime-3.2.jar;'modules/validation/target/classes/';'modules/projection/target/classes/';C:\Users\Raymond\.m2\repository\org\codehaus\jackson\jackson-mapper-asl\1.9.9\jackson-mapper-asl-1.9.9.jar;C:\Users\Raymond\.m2\repository\org\codehaus\jackson\jackson-core-asl\1.9.9\jackson-core-asl-1.9.9.jar' org.scribble.cli.CommandLine -path modules/core/src/test/scrib/ modules/core/src/test/scrib/Test.scr
+//$ java -cp modules/cli/target/classes/';'modules/core/target/classes';'modules/trace/target/classes';'modules/parser/target/classes';c:\Users\Raymond\.m2\repository\org\antlr\antlr-runtime\3.2\antlr-runtime-3.2.jar;'modules/validation/target/classes/';'modules/projection/target/classes/';C:\Users\Raymond\.m2\repository\org\codehaus\jackson\jackson-mapper-asl\1.9.9\jackson-mapper-asl-1.9.9.jar;C:\Users\Raymond\.m2\repository\org\codehaus\jackson\jackson-core-asl\1.9.9\jackson-core-asl-1.9.9.jar' org.scribble2.cli.CommandLine -path modules/validation/src/test/scrib/src modules/validation/src/test/scrib/src/Test.scr
+
+
+//http://sandbox.kidstrythisathome.com/erdos/
+
+
+module tmp.EATmp;
+
+
+//data <java> "..." from "..." as T;
+data <scala> "String" from "TODO" as String;
+data <scala> "Int" from "TODO" as Int;
+
+
+// TODO
+// - pay types -> (de)serialization in Actor.sendMessage and handle SEND
+// - package from module
+// - immutable data objects?
+// - path dependent Done
+// - handler coalescing
+// - try session runtime using EDP and coalescing (cf. Init)
+
+
+/* // gen01
+global protocol Proto1(role A, role B)
+{
+	L1(String) from A to B;
+}
+//*/
+
+
+/* // gen02
+global protocol Proto1(role A, role B)
+{
+	L1(String) from A to B;
+	L2(String) from B to A;
+}
+//*/
+
+
+/* // gen03
+global protocol Proto1(role A, role B)
+{
+	L1(String) from A to B;
+	choice at B {
+	    L2(String) from B to A;
+	} or {
+	    L3(String) from B to A;
+	}
+}
+//*/
+
+
+/* // gen04
+global protocol Proto1(role A, role B)
+{
+	L1(String) from A to B;
+	choice at B {
+	    L2(String) from B to A;
+	    do Proto1(A, B);
+	} or {
+	    L3(String) from B to A;
+	}
+}
+//*/
+
+
+/* // gen05
+global protocol Proto1(role A, role B, role C)
+{
+	L1(String) from A to B;
+	choice at B {
+	    L2a(String) from B to A;
+	    L2c(String) from B to C;
+	    do Proto1(A, B, C);
+	} or {
+	    L3a(String) from B to A;
+	    L3c(String) from B to C;
+	}
+}
+//*/
+
+
+/* // gen06
+global protocol Proto1(role A, role B) {
+    L1(Int) from A to B;  // testing payload types
+}
+//*/
+
+
+/* // gen07, gen08  // Testing multiple session (suspendbang/join/become -- weaken/affine), A1/A2 - B
+global protocol Proto1(role A, role B) {
+    L1(String) from A to B;
+    L2(String) from B to A;
+}
+//*/
+
+
+
+
+
+
+/* // Shop -- !!! -fair
+global protocol Proto1(role C, role S, role P)
+{
+    ReqItems(String) from C to S;
+    Items(String) from S to C;
+    do Proto1Aux(C, S, P);
+}
+
+aux global protocol Proto1Aux(role C, role S, role P)
+{
+    choice at C {
+        GetItemInfo(String) from C to S;
+        ItemInfo(String) from S to C;
+        do Proto1Aux(C, S, P);
+    } or {
+        Checkout(String) from C to S;
+        choice at S {
+            Processing(String) from S to C;
+            Buy(String) from S to P;
+            choice at P {
+                OK(String) from P to S;
+                OKc(String) from S to C;  // delivery date
+                do Proto1Aux(C, S, P);
+            } or {
+                Declined(String) from P to S;
+                Declinedc(String) from S to C;  // insufficient funds
+                do Proto1Aux(C, S, P);
+            }
+        } or {
+            OutOfStock(String) from S to C;
+            do Proto1Aux(C, S, P);
+        }
+    }
+}
+
+global protocol Proto2(role SS, role SF) {
+    choice at SS {
+        AddItem(String) from SS to SF;
+        do Proto2(SS, SF);
+    } or {
+        RemoveItem(String) from SS to SF;
+        do Proto2(SS, SF);
+    }
+}
+//*/
+
+
+/* // robot
+global protocol Proto1(role R, role D, role W) {
+    WantD(String) from R to D;
+    WantW(String) from R to W;  // !!!  // XXX
+    choice at D {
+        Busy(String) from D to R;
+        Cancel(String) from D to W;  // !!!
+    } or {
+        // fork
+        // [D] Open door
+        GoIn(String) from D to R;
+        Prepare(String) from D to W;
+
+        // join -- !!! testing async message arrival handler installed
+        // [R] Drive in
+        Inside(String) from R to D;
+        // [D] Close door
+        Prepared(String) from W to D;
+
+        Deliver(String) from D to W;
+        // [W] Lock table
+        Delivered(String) from W to R;
+        // [R] Take part
+
+        // fork
+        PartTaken(String) from R to W;
+        WantLeave(String) from R to D;
+
+        // join
+        // [D] Open door
+        GoOut(String) from D to R;
+        // [R] Drive out
+        Outside(String) from R to D;
+        // [D] Close door
+        TableIdle(String) from W to D;
+    }
+}
+//*/
+
+
+//* // chat
+global protocol Proto1(role C, role S) {  // ChatServer(ClientThread, RoomRegistry)
+    choice at C {
+        LookupRoom(String) from C to S;  // RoomName
+        choice at S {
+            RoomPID(String) from S to C;  // RoomName, PID => AP port
+            //C initiates ChatSession(C, new ChatRoom);  // !!!
+        } or {
+            RoomNotFound(String) from S to C;  // RoomName
+        }
+        do Proto1(C, S);
+    } or {
+        CreateRoom(String) from C to S;  // RoomName
+        choice at S {
+            CreateRoomSuccess(String) from S to C;  // RoomName
+        } or {
+            RoomExists(String) from S to C;  // RoomName
+        }
+        do Proto1(C, S);
+    } or {
+        ListRooms(String) from C to S;
+        RoomList(String) from S to C;  // List<RoomName>
+        do Proto1(C, S);
+    } or {
+        Bye(String) from C to S;  // !!!
+    }
+}
+
+global protocol Proto2(role C, role R) {  // C, R
+    choice at C {
+        OutgoingChatMessage(String) from C to R;
+        do Proto2(C, R);
+    } or {
+        LeaveRoom(String) from C to R;
+    }
+}
+
+global protocol Proto3(role R, role C){
+    choice at R {
+        IncomingChatMessage(String) from R to C;
+        do Proto3(R, C);
+    } or {
+        Bye(String) from R to C;
+    }
+}
+//*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
