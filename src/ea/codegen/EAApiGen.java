@@ -13,7 +13,6 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class EAApiGen {
@@ -22,6 +21,8 @@ public class EAApiGen {
     public static final String PID_PARAM_NAME = "pid";
     public static final String SID_TYPE = "Session.Sid";
     public static final String SID_PARAM_NAME = "sid";
+    public static final String ROLE_TYPE = "Session.Role";
+    public static final String ROLE_PARAM_NAME = "role";
     public static final String ACTOR_PARAM_NAME = "actor";
     public static final String OSTATE_TYPE = "Session.OState";
     public static final String ISTATE_TYPE = "Session.IState";
@@ -199,7 +200,7 @@ public class EAApiGen {
                 new GParam(List.of(), "(D, " + initName + ") => " + DONE_TYPE, "f"));
         String ret = "Unit";
         String body =
-                "val g = (" + SID_PARAM_NAME + ": " + SID_TYPE + ") => " + initName + "(" + SID_PARAM_NAME + ", this)"
+                "val g = (" + SID_PARAM_NAME + ": " + SID_TYPE + ") => " + initName + "(" + SID_PARAM_NAME + ", \"" + r + "\", this)"
                         + "\n" + ACTOR_ENQUEUEREGISTER_METHOD + "(apHost, apPort, \"" + proto + "\", \"" + r + "\", port, d, f, g, Set(" + peers.stream().map(y -> "\"" + y + "\"").collect(Collectors.joining(", ")) + "))";
         return new GMethod(List.of(), name, tParams, params, ret, body);
     }
@@ -229,6 +230,7 @@ public class EAApiGen {
         String actorType = getActorType(proto, r);
         List<GParam> susParams = List.of(
                 new GParam(List.of(), SID_TYPE, SID_PARAM_NAME),
+                new GParam(List.of(), ROLE_TYPE, ROLE_PARAM_NAME),
                 new GParam(List.of(), actorType, ACTOR_PARAM_NAME));
         List<String> susSupers = List.of(SUSPEND_TYPE + "[" + actorType + "]");
         List<GField> susFields = List.of();
@@ -239,7 +241,9 @@ public class EAApiGen {
         GTrait state = new GTrait(List.of(SEALED_KW), name, List.of(ISTATE_TYPE), List.of());
 
         List<String> mods = susMods;
-        List<GParam> params = List.of(new GParam(List.of(), SID_TYPE, SID_PARAM_NAME));
+        List<GParam> params = List.of(
+                new GParam(List.of(), SID_TYPE, SID_PARAM_NAME),
+                new GParam(List.of(), ROLE_TYPE, ROLE_PARAM_NAME));
         //new GParam(List.of(), "String", SEND_PAY_PARAM_NAME));
         //new GParam(List.of(), getSuccTypeName(r, s, x), "s"));
         List<GClass> cases = s.getDetActions().stream()
@@ -293,11 +297,11 @@ public class EAApiGen {
         Function<EAction, String> f = (x) -> {
             c[0] = 0;
             return "\tif (op == \"" + x.mid + "\") {"
-                    + "\n\t\tval s = " + getSuccTypeName(names, s, x) + "(" + SID_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")"
+                    + "\n\t\tval s = " + getSuccTypeName(names, s, x) + "(" + SID_PARAM_NAME + ", " + ROLE_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")"
                     + "\n\t\tsucc = Some(s)"
                     + "\n\t\tval split = pay.split(\"::::\")"
                     //+ "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", pay.asInstanceOf[" + getPayloadType(x) + "], s)"
-                    + "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + g.apply(getPayloadTypes(x)) + ", s)"
+                    + "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", " + ROLE_PARAM_NAME + g.apply(getPayloadTypes(x)) + ", s)"
                     + "\n\t} else ";
         };
         List<EAction> as = s.getDetActions();
@@ -327,6 +331,7 @@ public class EAApiGen {
         String name = getStateTypeName(names, s);
         List<GParam> params = List.of(
                 new GParam(List.of(), SID_TYPE, SID_PARAM_NAME),
+                new GParam(List.of(), ROLE_TYPE, ROLE_PARAM_NAME),
                 new GParam(List.of(), actorType, ACTOR_PARAM_NAME)
         );
         List<String> supers = List.of(OSTATE_TYPE + "[" + actorType + "]");
@@ -372,7 +377,7 @@ public class EAApiGen {
                  }).collect(Collectors.joining(" + \"::::\" + ")))
                 //+ "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\"" + pays.stream().map(x -> ", " + SEND_PAY_PARAM_NAME + c[0]++).collect(Collectors.joining()) + ")"
                 + "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\", pay)"
-                + "\n" + ret + "(" + SID_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")";
+                + "\n" + ret + "(" + SID_PARAM_NAME + ", \"" + src + "\", " + ACTOR_PARAM_NAME + ")";
         return new GMethod(List.of(), name, List.of(), params, ret, body);
     }
 
@@ -381,6 +386,7 @@ public class EAApiGen {
         String name = getStateTypeName(names, s);
         List<GParam> params = List.of(
                 new GParam(List.of(), SID_TYPE, SID_PARAM_NAME),
+                new GParam(List.of(), ROLE_TYPE, ROLE_PARAM_NAME),
                 new GParam(List.of(), getActorType(proto, r), ACTOR_PARAM_NAME)
         );
         List<String> supers = List.of(END_TYPE + "[" + getActorType(proto, r) + "]");

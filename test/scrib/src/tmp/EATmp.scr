@@ -10,12 +10,14 @@ data <scala> "Boolean" from "" as Boolean;
 
 
 // TODO
-// - pay types -> (de)serialization in Actor.sendMessage and handle SEND
-// - failure handling
+// - sid of "nested" failure exception, cf. become
 // - spaces not tabs
+// - send method @throws[IOException]
 //
 // - package from module
+// - failure handling -- CancelledKey
 //
+// - pay types -> frame size wire proto -- (de)serialization in Actor.sendMessage and handle SEND
 // - immutable data objects? -- API needs to thread through
 // - path dependent Done
 // - handler coalescing
@@ -106,6 +108,15 @@ global protocol Proto09(role A, role B)
 //*/
 
 
+//*/ 10
+global protocol Proto10(role A, role B)
+{
+	L1() from A to B;
+	L2() from B to A;
+	do Proto10(A, B);
+}
+//*/
+
 
 
 
@@ -170,8 +181,8 @@ global protocol ShopProto2(role SS, role SF) {
 //*/
 
 
-/* // robot
-global protocol Proto1(role R, role D, role W) {
+//* // robot
+global protocol RobotProto(role R, role D, role W) {
     WantD(String) from R to D;
     WantW(String) from R to W;  // !!!  // XXX
     choice at D {
@@ -210,8 +221,8 @@ global protocol Proto1(role R, role D, role W) {
 //*/
 
 
-/* // chat
-global protocol Proto1(role C, role S) {  // ChatServer(ClientThread, RoomRegistry)
+//* // chat
+global protocol ChatProto1(role C, role S) {  // ChatServer(ClientThread, RoomRegistry)
     choice at C {
         LookupRoom(String) from C to S;  // RoomName
         choice at S {
@@ -220,7 +231,7 @@ global protocol Proto1(role C, role S) {  // ChatServer(ClientThread, RoomRegist
         } or {
             RoomNotFound(String) from S to C;  // RoomName
         }
-        do Proto1(C, S);
+        do ChatProto1(C, S);
     } or {
         CreateRoom(String) from C to S;  // RoomName
         choice at S {
@@ -228,29 +239,29 @@ global protocol Proto1(role C, role S) {  // ChatServer(ClientThread, RoomRegist
         } or {
             RoomExists(String) from S to C;  // RoomName
         }
-        do Proto1(C, S);
+        do ChatProto1(C, S);
     } or {
         ListRooms(String) from C to S;
         RoomList(String) from S to C;  // List<RoomName>
-        do Proto1(C, S);
+        do ChatProto1(C, S);
     } or {
         Bye(String) from C to S;  // !!!
     }
 }
 
-global protocol Proto2(role C, role R) {  // C, R
+global protocol ChatProto2(role C, role R) {  // C, R
     choice at C {
         OutgoingChatMessage(String) from C to R;
-        do Proto2(C, R);
+        do ChatProto2(C, R);
     } or {
         LeaveRoom(String) from C to R;
     }
 }
 
-global protocol Proto3(role R, role C){
+global protocol ChatProto3(role R, role C){
     choice at R {
         IncomingChatMessage(String) from R to C;
-        do Proto3(R, C);
+        do ChatProto3(R, C);
     } or {
         Bye(String) from R to C;
     }
