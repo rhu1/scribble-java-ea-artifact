@@ -12,17 +12,18 @@ data <scala> "Boolean" from "" as Boolean;
 // TODO
 // - private/protected
 //
+// - pay types -> frame size wire proto -- (de)serialization in Actor.sendMessage and handle SEND
+// - immutable data objects? -- API needs to thread through
+// - path dependent Done
+// - handler coalescing
+// - ...try "TCP-based session runtime" using EDP and coalescing (cf. Init)
+//
+// - DONE
 // - send method @throws[IOException]
 // - spaces not tabs
 // - package from module
 // - failure handling -- CancelledKey
 // - sid of "nested" failure exception, cf. become
-//
-// - pay types -> frame size wire proto -- (de)serialization in Actor.sendMessage and handle SEND
-// - immutable data objects? -- API needs to thread through
-// - path dependent Done
-// - handler coalescing
-// - try session runtime using EDP and coalescing (cf. Init)
 
 
 //* // gen01
