@@ -10,12 +10,13 @@ data <scala> "Boolean" from "" as Boolean;
 
 
 // TODO
-// - sid of "nested" failure exception, cf. become
-// - spaces not tabs
 // - send method @throws[IOException]
+// - private/protected
+// - spaces not tabs
 //
 // - package from module
 // - failure handling -- CancelledKey
+// - sid of "nested" failure exception, cf. become
 //
 // - pay types -> frame size wire proto -- (de)serialization in Actor.sendMessage and handle SEND
 // - immutable data objects? -- API needs to thread through
