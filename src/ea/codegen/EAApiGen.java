@@ -42,6 +42,8 @@ public class EAApiGen {
     public static final String CHECK_NOT_USED_METHOD = "checkNotUsed";
     public static final String CHECK_USED_METHOD = "checkUsed";
 
+    public static final String TAB = "    ";
+
     //protected static final GField IS_USED_FIELD = new GField(List.of("var"), "Boolean", IS_USED_FIELD_NAME, "false");
 
 
@@ -115,13 +117,15 @@ public class EAApiGen {
         //membs.add(new GPackage("tmp.scratch.scratch07." + getProtoPackageName(proto)));
         membs.add(new GPackage(fullnameToPackage(inlined.fullname)));
         membs.add(new GImport("ea.runtime", List.of("Actor", "Done", "Session")));
+        if (ss.stream().anyMatch(x -> x.getStateKind() == EStateKind.OUTPUT)) {
+            membs.add(new GImport("java.io", List.of("IOException")));
+        }
 
         List<Role> peers = //inlined.roles.stream().filter(x -> !x.equals(r)).sorted((o1, o2) -> Comparator.<String>naturalOrder().compare(o1.toString(), o2.toString())).toList();
                 inlined.roles.stream().filter(x -> !x.equals(r)).toList();
         membs.add(generateActorTrait(names, proto, r, peers, ss.get(0)));
 
         for (EState s : ss) {
-
             EStateKind kind = s.getStateKind();
             switch (kind) {
                 case OUTPUT -> membs.add(generateOutputState(names, proto, r, s));
@@ -202,7 +206,7 @@ public class EAApiGen {
         String body =
                 "val g = (" + SID_PARAM_NAME + ": " + SID_TYPE + ") => " + initName + "(" + SID_PARAM_NAME + ", \"" + r + "\", this)"
                         + "\n" + ACTOR_ENQUEUEREGISTER_METHOD + "(apHost, apPort, \"" + proto + "\", \"" + r + "\", port, d, f, g, Set(" + peers.stream().map(y -> "\"" + y + "\"").collect(Collectors.joining(", ")) + "))";
-        return new GMethod(List.of(), name, tParams, params, ret, body);
+        return new GMethod(List.of(), List.of(), name, tParams, params, ret, body);
     }
 
     // !!! Deprecate
@@ -219,7 +223,7 @@ public class EAApiGen {
         String body =
                 "val g = (" + SID_PARAM_NAME + ": " + SID_TYPE + ") => " + initName + "(" + SID_PARAM_NAME + ", this)"
                         + "\n" + ACTOR_SPAWNANDREGISTER_METHOD + "(apHost, apPort, \"" + proto + "\", \"" + r + "\", port, d, f, g, Set(" + peers.stream().map(y -> "\"" + y + "\"").collect(Collectors.joining(", ")) + "))";
-        return new GMethod(List.of(), name, tParams, params, ret, body);
+        return new GMethod(List.of(), List.of(), name, tParams, params, ret, body);
     }
 
     /* ... */
@@ -296,13 +300,13 @@ public class EAApiGen {
                  .collect(Collectors.joining());
         Function<EAction, String> f = (x) -> {
             c[0] = 0;
-            return "\tif (op == \"" + x.mid + "\") {"
-                    + "\n\t\tval s = " + getSuccTypeName(names, s, x) + "(" + SID_PARAM_NAME + ", " + ROLE_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")"
-                    + "\n\t\tsucc = Some(s)"
-                    + "\n\t\tval split = pay.split(\"::::\")"
-                    //+ "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", pay.asInstanceOf[" + getPayloadType(x) + "], s)"
-                    + "\n\t\t" + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", " + ROLE_PARAM_NAME + g.apply(getPayloadTypes(x)) + ", s)"
-                    + "\n\t} else ";
+            return TAB + "if (op == \"" + x.mid + "\") {"
+                    + "\n" + TAB + TAB + "val s = " + getSuccTypeName(names, s, x) + "(" + SID_PARAM_NAME + ", " + ROLE_PARAM_NAME + ", " + ACTOR_PARAM_NAME + ")"
+                    + "\n" + TAB + TAB + "succ = Some(s)"
+                    + "\n" + TAB + TAB + "val split = pay.split(\"::::\")"
+                    //+ "\n" + TAB + TAB + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", pay.asInstanceOf[" + getPayloadType(x) + "], s)"
+                    + "\n" + TAB + TAB + getInputCaseType(r, (Op) x.mid) + "(" + SID_PARAM_NAME + ", " + ROLE_PARAM_NAME + g.apply(getPayloadTypes(x)) + ", s)"
+                    + "\n" + TAB + "} else ";
         };
         List<EAction> as = s.getDetActions();
         Role peer = as.get(0).peer;
@@ -310,19 +314,19 @@ public class EAApiGen {
         String body = CHECK_NOT_USED_METHOD + "()"
                 + "\nval g = (op: String, pay: String) => {"  // !!! Object -- cf. generic lambda not directly supported?
                 //+ "\nval g = (op: String, pay: List[Object]) => {"  // !!! Object -- cf. generic lambda not directly supported?
-                + "\n\tvar succ: Option[Session.ActorState[Actor]] = None"
-                + "\n\tval msg: " + state + " ="
+                + "\n" + TAB + "var succ: Option[Session.ActorState[Actor]] = None"
+                + "\n" + TAB + "val msg: " + state + " ="
                 + "\n" + as.stream().map(f).collect(Collectors.joining())
                 + "{"
-                + "\n\t\tthrow new RuntimeException(s\"[ERROR] Unexpected op: ${op}(${pay})\")"
-                + "\n\t}"
-                + "\n\tval done = f.apply(d, msg)"
-                + "\n\tsucc.get.checkUsed()"
-                + "\n\tdone"
+                + "\n" + TAB + TAB + "throw new RuntimeException(s\"[ERROR] Unexpected op: ${op}(${pay})\")"
+                + "\n" + TAB + "}"
+                + "\n" + TAB + "val done = f.apply(d, msg)"
+                + "\n" + TAB + "succ.get.checkUsed()"
+                + "\n" + TAB + "done"
                 + "\n}"
                 + "\nactor.setHandler(" + SID_PARAM_NAME + ", \"" + r + "\", \"" + peer + "\", g)"
                 + "\nDone";
-        return new GMethod(List.of(), ACTOR_SUSPEND_METHOD, tParams, params, DONE_TYPE, body);
+        return new GMethod(List.of(), List.of(), ACTOR_SUSPEND_METHOD, tParams, params, DONE_TYPE, body);
     }
 
     protected GIndentable generateOutputState(Map<Integer, String> names, GProtoName proto, Role r, EState s) {
@@ -346,14 +350,14 @@ public class EAApiGen {
         return new GClass(mods, name, params, List.of(), methods, supers);
     }
 
-    protected GMethod generateWeaken(String stateType) {
+    /*protected GMethod generateWeaken(String stateType) {
         String name = "weaken";
         String ret = "(" + stateType + ", " + DONE_TYPE + ")";
         String body =
                 "this.isUsed = true"
                         + "\n(" + stateType + "(" + SID_PARAM_NAME + ", " + ACTOR_PARAM_NAME + "), Done)";
-        return new GMethod(List.of(), name, List.of(), List.of(), ret, body);
-    }
+        return new GMethod(List.of(), List.of(), name, List.of(), List.of(), ret, body);
+    }*/
 
     protected GMethod generateSend(Role src, Role dst, Op op, List<DataName> pays, String ret) {
         String name = "send" + op;
@@ -378,7 +382,7 @@ public class EAApiGen {
                 //+ "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\"" + pays.stream().map(x -> ", " + SEND_PAY_PARAM_NAME + c[0]++).collect(Collectors.joining()) + ")"
                 + "\n" + ACTOR_PARAM_NAME + "." + ACTOR_SENDMESSAGE_METHOD + "(" + SID_PARAM_NAME + ", \"" + src + "\", \"" + dst + "\", \"" + op + "\", pay)"
                 + "\n" + ret + "(" + SID_PARAM_NAME + ", \"" + src + "\", " + ACTOR_PARAM_NAME + ")";
-        return new GMethod(List.of(), name, List.of(), params, ret, body);
+        return new GMethod(List.of("IOException"), List.of(), name, List.of(), params, ret, body);
     }
 
     protected GIndentable generateTerminalState(Map<Integer, String> names, GProtoName proto, Role r, EState s) {
@@ -401,7 +405,7 @@ public class EAApiGen {
                 + "\n" + ACTOR_PARAM_NAME + "." + ACTOR_END_METHOD + "(" + SID_PARAM_NAME + ", \"" + r + "\")"
                 + "\ndone";
         //ACTOR_FINISH_METHOD + "(" + SID_PARAM_NAME + ")";
-        return new GMethod(List.of("override"), name, List.of(), List.of(), DONE_TYPE, body);
+        return new GMethod(List.of(), List.of("override"), name, List.of(), List.of(), DONE_TYPE, body);
     }
 
 
@@ -524,7 +528,7 @@ class GTrait implements GIndentable {
         return pref + (this.mods.isEmpty() ? "" : String.join(" ", this.mods) + " ") + "trait " + this.name + (this.supers.isEmpty() ? "" : " extends " + String.join(", ", supers))
                 + (this.methods.isEmpty()
                    ? ""
-                   : " {\n\n" + pref + this.methods.stream().map(x -> x.toString(pref + "\t")).collect(Collectors.joining("\n\n")) + "\n}");
+                   : " {\n\n" + pref + this.methods.stream().map(x -> x.toString(pref + EAApiGen.TAB)).collect(Collectors.joining("\n\n")) + "\n}");
     }
 }
 
@@ -588,14 +592,15 @@ abstract class GClassOrCompanion implements GIndentable {
                 + (this.supers.isEmpty() ? "" : " extends " + String.join(", ", supers))
                 + (this.fields.isEmpty()
                    ? ""
-                   : " {\n" + pref + this.fields.stream().map(x -> x.toString(pref + "\t")).collect(Collectors.joining("\n")) + "\n}")
+                   : " {\n" + pref + this.fields.stream().map(x -> x.toString(pref + EAApiGen.TAB)).collect(Collectors.joining("\n")) + "\n}")
                 + (this.methods.isEmpty()
                    ? ""
-                   : " {\n\n" + pref + this.methods.stream().map(x -> x.toString(pref + "\t")).collect(Collectors.joining("\n\n")) + "\n}");
+                   : " {\n\n" + pref + this.methods.stream().map(x -> x.toString(pref + EAApiGen.TAB)).collect(Collectors.joining("\n\n")) + "\n}");
     }
 }
 
 class GMethod implements GIndentable {
+    public final List<String> thrws;
     public final List<String> mods;
     public final String name;
     public final List<GTParam> tParams;
@@ -603,7 +608,8 @@ class GMethod implements GIndentable {
     public final String ret;
     public final String body;
 
-    public GMethod(List<String> mods, String name, List<GTParam> tParams, List<GParam> params, String ret, String body) {
+    public GMethod(List<String> thrws, List<String> mods, String name, List<GTParam> tParams, List<GParam> params, String ret, String body) {
+        this.thrws = List.copyOf(thrws);
         this.mods = List.copyOf(mods);
         this.name = name;
         this.tParams = List.copyOf(tParams);
@@ -619,8 +625,9 @@ class GMethod implements GIndentable {
 
     @Override
     public String toString(String pref) {
-        return pref + (this.mods.isEmpty() ? "" : String.join(" ", this.mods) + " ") + "def " + this.name + (this.tParams.isEmpty() ? "" : "[" + this.tParams.stream().map(GTParam::toString).collect(Collectors.joining(", ")) + "]") + "(" + this.params.stream().map(GParam::toString).collect(Collectors.joining(", ")) + "): " + this.ret + " = {"
-                + "\n" + pref + "\t" + this.body.replaceAll("\\n", "\n" + pref + "\t")
+        return this.thrws.stream().map(x -> pref + "@throws[" + x + "]\n").collect(Collectors.joining())
+                + pref + (this.mods.isEmpty() ? "" : String.join(" ", this.mods) + " ") + "def " + this.name + (this.tParams.isEmpty() ? "" : "[" + this.tParams.stream().map(GTParam::toString).collect(Collectors.joining(", ")) + "]") + "(" + this.params.stream().map(GParam::toString).collect(Collectors.joining(", ")) + "): " + this.ret + " = {"
+                + "\n" + pref + EAApiGen.TAB + this.body.replaceAll("\\n", "\n" + pref + EAApiGen.TAB)
                 + "\n" + pref + "}";
     }
 }

@@ -10,10 +10,10 @@ data <scala> "Boolean" from "" as Boolean;
 
 
 // TODO
-// - send method @throws[IOException]
 // - private/protected
-// - spaces not tabs
 //
+// - send method @throws[IOException]
+// - spaces not tabs
 // - package from module
 // - failure handling -- CancelledKey
 // - sid of "nested" failure exception, cf. become
