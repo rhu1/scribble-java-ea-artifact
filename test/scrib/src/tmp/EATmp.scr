@@ -251,21 +251,21 @@ global protocol ChatProto1(role C, role S) {  // ChatServer(ClientThread, RoomRe
     }
 }
 
-global protocol ChatProto2(role C, role R) {  // C, R
-    choice at C {
-        OutgoingChatMessage(String) from C to R;
-        do ChatProto2(C, R);
+global protocol ChatProto2(role C2, role R2) {  // C, R
+    choice at C2 {
+        OutgoingChatMessage(String) from C2 to R2;
+        do ChatProto2(C2, R2);
     } or {
-        LeaveRoom(String) from C to R;
+        LeaveRoom(String) from C2 to R2;
     }
 }
 
-global protocol ChatProto3(role R, role C){
-    choice at R {
-        IncomingChatMessage(String) from R to C;
-        do ChatProto3(R, C);
+global protocol ChatProto3(role R3, role C3){
+    choice at R3 {
+        IncomingChatMessage(String) from R3 to C3;
+        do ChatProto3(R3, C3);
     } or {
-        Bye(String) from R to C;
+        Bye(String) from R3 to C3;
     }
 }
 //*/
