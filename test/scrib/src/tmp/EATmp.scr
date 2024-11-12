@@ -11,6 +11,8 @@ data <scala> "Boolean" from "" as Boolean;
 
 // TODO
 // - private/protected
+// - build java from commandline
+// - build/run scala from commmandline
 //
 // - pay types -> frame size wire proto -- (de)serialization in Actor.sendMessage and handle SEND
 // - immutable data objects? -- API needs to thread through
@@ -24,6 +26,10 @@ data <scala> "Boolean" from "" as Boolean;
 // - package from module
 // - failure handling -- CancelledKey
 // - sid of "nested" failure exception, cf. become
+
+
+
+// !!! use ./scribblec-ea.sh for file output
 
 
 //* // gen01
@@ -279,11 +285,93 @@ global protocol ChatProto3(role R3, role C3){
 
 
 
+// become not needed
+global protocol PingPong1(role C, role Pinger, role Ponger, role PongReceiver) {
+    Start() from C to Pinger;
+    do PingPong1Aux(C, Pinger, Ponger, PongReceiver);
+}
+
+/*// FIXME PingPinger message case class name clash for Ponger1/3 within PingPong1_Ponger file
+aux global protocol PingPong1Aux(role C, role Pinger, role Ponger, role PongReceiver) {
+    Ping() from Pinger to Ponger;
+    Pong() from Ponger to PongReceiver;
+    choice at PongReceiver {
+         PingC() from PongReceiver to Pinger;
+         do PingPong1Aux(C, Pinger, Ponger, PongReceiver);  // !!! extended scrib  // cf. C choice flattened to only Stop
+    } or {
+         Stop() from PongReceiver to Ponger;  // XXX sender conflict (inconsistent external choice subjects)
+         Stop() from PongReceiver to Pinger;  // !!! cf. exit() implicit messages  // cf. explicit connections
+         Stop() from PongReceiver to C;
+    }
+}*/
+
+// FIXME PingPinger message case class name clash for Ponger1/3 within PingPong1_Ponger file
+aux global protocol PingPong1Aux(role C, role Pinger, role Ponger, role PongReceiver) {
+    Ping() from Pinger to Ponger;
+    Pong() from Ponger to PongReceiver;
+    choice at PongReceiver {
+         PingC() from PongReceiver to Pinger;
+         // FIXME unfold Ping/Pong (copy to PingPong1 and here)
+         do PingPong1Aux(C, Pinger, Ponger, PongReceiver);  // !!! extended scrib  // cf. C choice flattened to only Stop
+    } or {
+         Stop() from PongReceiver to Pinger;  // !!! cf. exit() implicit messages  // cf. explicit connections
+         Stop() from Pinger to Ponger;
+         Stop() from Pinger to C;
+    }
+}
+
+
+global protocol PingPong2(role Pinger, role Ponger) {
+    Ping0() from Pinger to Ponger;
+    Pong0() from Ponger to Pinger;
+    do PingPong2aux(Pinger, Ponger);
+}
+
+aux global protocol PingPong2aux(role Pinger, role Ponger) {
+    choice at Pinger {  // become Pinger from PingDecisionReceiver and choose according case
+        Ping() from Pinger to Ponger;
+        Pong() from Ponger to Pinger;
+        // Pinger become PingDecisionMaker
+        do PingPong2aux(Pinger, Ponger);
+    } or {
+        Stop() from Pinger to Ponger;
+    }
+}
+
+global protocol PingPong2C(role C, role PingDecisionMaker, role PingDecisionReceiver) {
+    Start() from C to PingDecisionReceiver;
+    do PingPong2Caux(C, PingDecisionMaker, PingDecisionReceiver);
+}
+
+aux global protocol PingPong2Caux(role C, role PingDecisionMaker, role PingDecisionReceiver) {
+    // become PingDecisionMaker from Pinger and make decision
+    choice at PingDecisionMaker {
+        Ping() from PingDecisionMaker to PingDecisionReceiver;
+        // PingDecisionReceiver become Pinger and choose this case
+        do PingPong2Caux(C, PingDecisionMaker, PingDecisionReceiver);
+    } or {
+        StopC() from PingDecisionMaker to PingDecisionReceiver;
+        // PingDecisionReceiver become Pinger and choose this case
+        StopC() from PingDecisionMaker to C;
+    }
+}
 
 
 
 
 
+
+global protocol Fib1(role P, role C) {
+    Request(Int) from P to C;
+    Response(Int) from C to P;
+}
+
+global protocol Fib2(role P, role C1, role C2) {
+    Request1(Int) from P to C1;
+    Request2(Int) from P to C2;
+    Response1(Int) from C1 to P;
+    Response2(Int) from C2 to P;
+}
 
 
 
