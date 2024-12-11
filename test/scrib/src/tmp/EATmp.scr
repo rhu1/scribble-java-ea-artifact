@@ -285,7 +285,7 @@ global protocol ChatProto3(role R3, role C3){
 
 
 
-// become not needed
+// become not needed -- split Pinger/PongReceiver into two actors (so no self comm)
 global protocol PingPong1(role C, role Pinger, role Ponger, role PongReceiver) {
     Start() from C to Pinger;
     do PingPong1Aux(C, Pinger, Ponger, PongReceiver);
@@ -338,6 +338,7 @@ aux global protocol PingPong2aux(role Pinger, role Ponger) {
     }
 }
 
+// Pinger = PingDecisionMaker = PingDecisionReceiver
 global protocol PingPong2C(role C, role PingDecisionMaker, role PingDecisionReceiver) {
     Start() from C to PingDecisionReceiver;
     do PingPong2Caux(C, PingDecisionMaker, PingDecisionReceiver);
@@ -346,11 +347,11 @@ global protocol PingPong2C(role C, role PingDecisionMaker, role PingDecisionRece
 aux global protocol PingPong2Caux(role C, role PingDecisionMaker, role PingDecisionReceiver) {
     // become PingDecisionMaker from Pinger and make decision
     choice at PingDecisionMaker {
-        Ping() from PingDecisionMaker to PingDecisionReceiver;
+        Ping() from PingDecisionMaker to PingDecisionReceiver;  // !!! self comm
         // PingDecisionReceiver become Pinger and choose this case
         do PingPong2Caux(C, PingDecisionMaker, PingDecisionReceiver);
     } or {
-        StopC() from PingDecisionMaker to PingDecisionReceiver;
+        StopC() from PingDecisionMaker to PingDecisionReceiver;  // !!! extra, sort of -- should be PingDecisionMaker to Ponger (we're doing from Pinger -- fine because self comm just leads to comm from Pinger to Ponger)
         // PingDecisionReceiver become Pinger and choose this case
         StopC() from PingDecisionMaker to C;
     }
@@ -378,3 +379,68 @@ global protocol Fib2(role P, role C1, role C2) {
 
 
 
+global protocol Phil1(role M, role P1) {
+    Start() from M to P1;
+}
+
+global protocol Phil2(role P, role A) {
+    Hungry0(Int) from P to A;  // Phil ID 1..N
+    do Phil2Aux(P, A);
+}
+
+// !!! skipping P self comm -- within same session so no become needed
+aux global protocol Phil2Aux(role P, role A) {
+    choice at A {
+        Denied() from A to P;
+        HungryD(Int) from P to A;  // Phil ID 1..N
+        do Phil2Aux(P, A);
+    } or {
+        Eat() from A to P;
+        Done(Int) from P to A;  // Phil ID 1..N
+        choice at P {
+            // !!! self send Start
+            HungryE(Int) from P to A;  // Phil ID 1..N
+            do Phil2Aux(P, A);
+        } or {
+            Exit() from P to A;
+        }
+    }
+}
+
+
+
+
+
+// !!! cf. producerActor ! filterActor -- ap passing?
+global protocol Sieve1(role M, role G, role F1) {
+    Start() from M to G;
+    NewPrime(Int) from G to F1;
+    do Sieve1Aux(M, G, F1);
+}
+
+aux global protocol Sieve1Aux(role M, role G, role F1) {
+    choice at G {
+        LongBox(Int) from G to F1;  // FIXME Long
+        do Sieve1Aux(M, G, F1);
+    } or {
+        Exit() from G to F1;
+        Ack() from F1 to G;  // !!! else F doesn't know when close is safe... (F maybe slow)
+        Exit() from G to M;
+    }
+}
+
+global protocol Sieve2(role F, role Fnext) {
+    Ready() from Fnext to F;  // Redundant? (cf. pendingExit)
+    NewPrime(Int) from F to Fnext;
+    do Sieve2Aux(F, Fnext);
+}
+
+aux global protocol Sieve2Aux(role F, role Fnext) {
+    choice at F {
+        LongBox2(Int) from F to Fnext;  // FIXME Long
+        do Sieve2Aux(F, Fnext);
+    } or {
+        Exit2() from F to Fnext;
+        Ack2() from Fnext to F;  // !!! else F doesn't know when close is safe... (F maybe slow)
+    }
+}
