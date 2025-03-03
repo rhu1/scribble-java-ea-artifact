@@ -1,6 +1,6 @@
 package ea.cli;
 
-import ea.codegen.EAApiGen;
+import ea.codegen.scala.EAApiGen;
 import org.scribble.cli.CLFlags;
 import org.scribble.cli.CommandLine;
 import org.scribble.cli.CommandLineException;
