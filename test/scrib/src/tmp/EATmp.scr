@@ -1,6 +1,8 @@
 //-- rhu1/scribble-java-ea-artifact (main) »
 // ./scribblec-ea.sh test/scrib/src/tmp/EATmp.scr Proto01 -d test/scrib/out
 
+// ./scribblec-ea.sh c:/Users/Raymond/winroot/home/eey335/code/scala/intellij/git/github.com/rhu1/scribble-scala-ea-artifact/src/main/scala/ea/example/hello/Hello.scr Proto1 -d test/scrib/out
+
 module tmp.EATmp;
 
 
@@ -140,6 +142,11 @@ global protocol Proto10(role A, role B)
 
 
 
+global protocol Hello(role A, role B)
+{
+	L1() from A to B;
+	L2(Int, String, Boolean) from B to A;
+}
 
 
 //* // Shop -- !!! -fair
