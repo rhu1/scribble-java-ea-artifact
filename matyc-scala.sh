@@ -4,8 +4,8 @@
 #./matyc-scala.sh $SCALA_BASE/src/main/scala/ea/example/hello/Hello.scr Proto1 -d test/scrib/out
 
 
-JAVA_BASE="/home/paper177/artifact/scribble-java-ea-artifact"
-SCALA_BASE="/home/paper177/artifact/scribble-scala-ea-artifact"
+#JAVA_BASE="/home/paper177/artifact/scribble-java-ea-artifact"
+#SCALA_BASE="/home/paper177/artifact/scribble-scala-ea-artifact"
 
 
 # Need at least two args or shift error
