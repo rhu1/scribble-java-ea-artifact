@@ -2,6 +2,7 @@
 
 
 #./matyc-scala.sh $SCALA_BASE/src/main/scala/ea/example/hello/Hello.scr Proto1 -d test/scrib/out
+#./matyc-scala.sh $SCALA_EXAMPLE/hello/Hello.scr Proto1 -d test/scrib/out
 
 
 #JAVA_BASE="/home/paper177/artifact/scribble-java-ea-artifact"
