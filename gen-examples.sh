@@ -24,3 +24,4 @@ $JAVA_BASE/matyc-scala.sh $SCALA_EXAMPLE/savina/dining/Dining.scr Proto2 -d $SCA
 $JAVA_BASE/matyc-scala.sh $SCALA_EXAMPLE/savina/sieve/Sieve.scr Proto1 -d $SCALA_BASE/src/main/scala
 $JAVA_BASE/matyc-scala.sh $SCALA_EXAMPLE/savina/sieve/Sieve.scr Proto2 -d $SCALA_BASE/src/main/scala
 
+
