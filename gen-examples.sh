@@ -1,5 +1,6 @@
 #!/bin/sh
 
+
 $JAVA_BASE/matyc-scala.sh $SCALA_EXAMPLE/hello/Hello.scr Proto1 -d $SCALA_BASE/src/main/scala
 
 $JAVA_BASE/matyc-scala.sh $SCALA_EXAMPLE/id/Id.scr Proto1 -d $SCALA_BASE/src/main/scala
