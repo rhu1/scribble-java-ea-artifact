@@ -39,7 +39,7 @@ public class EAApiGen {
     public static final String TAB = "    ";
 
 
-    /* Main */
+    /* Proto API (AP) */
 
     public Map<String, String> generateProtoAPI(GProtocol inlined) {
         System.out.println("\n[EAAPIGen] Generating Proto API for: " + inlined.fullname);
@@ -58,9 +58,6 @@ public class EAApiGen {
         return Map.of(file, membs.stream().map(GIndentable::toString)
                                  .collect(Collectors.joining("\n\n")));
     }
-
-
-    /* Proto API (AP) */
 
     String getAPClassName(GProtoName proto) {
         return proto.getSimpleName().toString();
