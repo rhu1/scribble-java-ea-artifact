@@ -19,6 +19,6 @@ class GImport implements GIndentable {
     @Override
     public String toString(String pref) {
         return pref + "import " + this.pref + "."
-                + (this.names.size() == 1 ? this.names.get(0) : "{" + String.join(", ", this.names) + "}");
+                + (this.names.size() == 1 ? this.names.getFirst() : "{" + String.join(", ", this.names) + "}");
     }
 }

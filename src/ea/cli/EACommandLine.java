@@ -27,12 +27,7 @@ public class EACommandLine extends CommandLine {
 
     public static void main(String[] args)
             throws CommandLineException, AntlrSourceException {
-
-        ////CommandLine.main(args);
         new EACommandLine(args).run();
-        //eamain();  // !!! base CommandLine fully bypassed -- No main module used
-
-        ////testParser();
     }
 
     @Override
@@ -41,7 +36,6 @@ public class EACommandLine extends CommandLine {
     }
 
     // A Scribble extension should override as appropriate
-    // TODO: rename, barrier misleading (sounds like a sync)
     @Override
     protected void tryBarrierTask(Job job, Pair<String, String[]> task)
             throws ScribException, CommandLineException {
@@ -49,15 +43,12 @@ public class EACommandLine extends CommandLine {
             case EACLFlags.EA_API_GEN_FLAG: {
                 JobContext jobc = job.getContext();
                 GProtoName fullname = checkGlobalProtocolArg(jobc, task.right[0]);
-                //Map<String, String> out = jgen.generateSessionApi(fullname);* /
-                //System.out.println("aaaaaaa: " + task.left + ",, " + fullname);
                 Core core = job.getCore();
                 CoreContext corec = core.getContext();
                 GProtocol inlined = corec.getInlined(fullname);
                 EAApiGen gen = new EAApiGen();
 
                 Map<String, String> proto = gen.generateProtoAPI(inlined);
-                //System.out.println("\n" + proto);
                 outputClasses(proto);
 
                 for (Role r : inlined.roles) {
@@ -66,7 +57,6 @@ public class EACommandLine extends CommandLine {
                                   : corec.getEGraph(fullname, r);
 
                     Map<String, String> roles = gen.generateRoleAPI(inlined, r, efsm);
-                    //System.out.println("\n" + roles);
                     outputClasses(roles);
                 }
                 break;
@@ -74,8 +64,5 @@ public class EACommandLine extends CommandLine {
             default:
                 super.tryBarrierTask(job, task);
         }
-    }
-
-    protected void foo(EAApiGen gen, GProtocol inlined, Role r, EGraph efsm) {
     }
 }
